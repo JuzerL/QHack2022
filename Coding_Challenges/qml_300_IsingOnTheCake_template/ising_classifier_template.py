@@ -66,21 +66,36 @@ def classify_ising_data(ising_configs, labels):
 
     # Define a variational circuit below with your needed arguments and return something meaningful
     @qml.qnode(dev)
-    def circuit(# delete this comment and put arguments here):
+    def circuit(weights, x):
+        qml.BasisState(x, wires=range(num_wires))
+        qml.StronglyEntanglingLayers(weights, wires=range(num_wires))
+        return qml.expval(qml.PauliZ(0))
 
     # Define a cost function below with your needed arguments
-    def cost(# delete this comment and put arguments here):
+    def cost(weights):
 
         # QHACK #
         
         # Insert an expression for your model predictions here
-        predictions = 
+        predictions = [circuit(weights, x) for x in ising_configs]
 
         # QHACK #
 
-        return square_loss(Y, predictions) # DO NOT MODIFY this line
+        return square_loss(labels, predictions) # DO NOT MODIFY this line
 
     # optimize your circuit here
+    num_layers = 3
+    shape = (num_layers, num_wires, 3)
+    np.random.seed(0)
+    weights = np.random.random(shape, requires_grad=True)
+
+    opt = qml.NesterovMomentumOptimizer(stepsize=0.5)
+
+    for _ in range(30):
+        weights = opt.step(cost, weights)
+
+    raw_predictions = [circuit(weights, x) for x in ising_configs]
+    predictions = [1 if p > 0 else -1 for p in raw_predictions]
 
     # QHACK #
 
